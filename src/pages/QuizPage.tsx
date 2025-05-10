@@ -34,21 +34,19 @@ const QuizPage: FC = () => {
     const theme = useTheme();
     const { activeSession, updateSession, finishSession } = useContext(SessionContext);
     const [questions, setQuestions] = useState<Question[]>([]);
-    const [current, setCurrent] = useState(0);
     const [finishDialog, setFinishDialog] = useState(false);
     const [navDialog, setNavDialog] = useState(false);
     const [showImage, setShowImage] = useState(true);
 
     useEffect(() => {
         setShowImage(true);
-    }, [current]);
+    }, []);
 
     useEffect(() => {
         if (!activeSession) return;
         fetch(activeSession.quiz.path)
             .then((res) => res.text())
             .then((csv) => {
-                console.log(activeSession.quiz.path);
                 const { data } = Papa.parse<Question>(csv, {
                     header: true,
                     skipEmptyLines: true,
@@ -76,6 +74,7 @@ const QuizPage: FC = () => {
         return <Typography>Завантаження запитань...</Typography>;
     }
 
+    const current = activeSession.current ?? 0;
     const total = questions.length;
     const page = current + 1;
     const ans = activeSession.answers[current] || { selected: '', correct: false };
@@ -110,6 +109,10 @@ const QuizPage: FC = () => {
         setFinishDialog(false);
     };
 
+    const goTo = (idx: number) => updateSession({ current: idx });
+    const goPrev = () => goTo(Math.max(current - 1, 0));
+    const goNext = () => goTo(Math.min(current + 1, total - 1));
+
     const imgUrl = `${activeSession.quiz.pathToImages}${page}.png`;
 
     return (
@@ -125,7 +128,7 @@ const QuizPage: FC = () => {
                         mb={2}
                         sx={{ overflowWrap: 'break-word', whiteSpace: 'normal' }}
                     >
-                        Питання {page}/{total}: {questions[current].question}
+                        Питання {page}/{total}: {questions[current]?.question}
                     </Typography>
 
                     {showImage && (
@@ -145,7 +148,7 @@ const QuizPage: FC = () => {
                                 value={label}
                                 control={<Radio />}
                                 sx={{ my: 1 }}
-                                label={questions[current][label]}
+                                label={questions[current] ? questions[current][label] : ''}
                             />
                         ))}
                     </RadioGroup>
@@ -171,15 +174,16 @@ const QuizPage: FC = () => {
                     >
                         {Array.from({ length: end - start + 1 }, (_, i) => {
                             const num = start + i;
-                            const isSelected = num === page;
-                            const isAnswered = !!activeSession.answers[num - 1]?.selected;
-                            const isFlagged = activeSession.flagged[num - 1];
+                            const idx = num - 1;
+                            const isSelected = idx === current;
+                            const isAnswered = !!activeSession.answers[idx]?.selected;
+                            const isFlagged = activeSession.flagged[idx];
                             return (
                                 <Box key={num} sx={{ position: 'relative' }}>
                                     <Button
                                         size="small"
                                         variant={isSelected ? 'contained' : 'outlined'}
-                                        onClick={() => setCurrent(num - 1)}
+                                        onClick={() => goTo(idx)}
                                         sx={{
                                             width: 42,
                                             height: 42,
@@ -220,15 +224,15 @@ const QuizPage: FC = () => {
                         <Button
                             disabled={current === 0}
                             variant="outlined"
-                            onClick={() => setCurrent(current - 1)}
+                            onClick={goPrev}
                             sx={{ width: '49%' }}
                         >
                             Попереднє
                         </Button>
                         <Button
-                            disabled={page === total}
+                            disabled={current === total - 1}
                             variant="contained"
-                            onClick={() => setCurrent(current + 1)}
+                            onClick={goNext}
                             sx={{ width: '49%' }}
                         >
                             Наступне
@@ -297,7 +301,7 @@ const QuizPage: FC = () => {
                     >
                         {Array.from({ length: total }, (_, i) => {
                             const num = i + 1;
-                            const isSelected = num === page;
+                            const isSelected = i === current;
                             const isAnswered = !!activeSession.answers[i]?.selected;
                             const isFlagged = activeSession.flagged[i];
                             return (
@@ -306,7 +310,7 @@ const QuizPage: FC = () => {
                                         size="small"
                                         variant={isSelected ? 'contained' : 'outlined'}
                                         onClick={() => {
-                                            setCurrent(i);
+                                            goTo(i);
                                             setNavDialog(false);
                                         }}
                                         sx={{

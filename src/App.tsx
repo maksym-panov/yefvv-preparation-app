@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { useContext, useState, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Box, IconButton, CssBaseline } from '@mui/material';
+import { Box, IconButton, CssBaseline, CircularProgress } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { lightTheme, darkTheme } from './theme';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -14,7 +14,7 @@ import HistoryPage from './pages/HistoryPage';
 import HistoryDetail from './pages/HistoryDetail';
 
 const App: FC = () => {
-    const { activeSession } = useContext(SessionContext);
+    const { activeSession, loading } = useContext(SessionContext);
     const [mode, setMode] = useState<'light' | 'dark'>(
         (localStorage.getItem('mode') as 'light' | 'dark') || 'light',
     );
@@ -23,6 +23,17 @@ const App: FC = () => {
         const next = mode === 'light' ? 'dark' : 'light';
         setMode(next);
         localStorage.setItem('mode', next);
+    };
+
+    const QuizRoute: FC = () => {
+        if (loading) {
+            return (
+                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                    <CircularProgress />
+                </Box>
+            );
+        }
+        return activeSession ? <QuizPage /> : <Navigate to="/" replace />;
     };
 
     return (
@@ -39,10 +50,7 @@ const App: FC = () => {
                     <Box flexGrow={1} p={2} overflow="auto">
                         <Routes>
                             <Route path="/" element={<HomePage />} />
-                            <Route
-                                path="/quiz/:suffix"
-                                element={activeSession ? <QuizPage /> : <Navigate to="/" />}
-                            />
+                            <Route path="/quiz/:suffix" element={<QuizRoute />} />
                             <Route path="/history" element={<HistoryPage />} />
                             <Route path="/history/:id" element={<HistoryDetail />} />
                         </Routes>

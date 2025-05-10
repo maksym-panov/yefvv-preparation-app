@@ -7,13 +7,16 @@ export interface AnswerRecord {
     selected: string;
     correct: boolean;
 }
+
 export interface ActiveSession {
     quiz: QuizConfig;
     answers: Record<number, AnswerRecord>;
     flagged: Record<number, boolean>;
     start: string;
     expires: string;
+    current: number;
 }
+
 export interface HistoryEntry {
     id: number;
     quiz: QuizConfig;
@@ -21,30 +24,48 @@ export interface HistoryEntry {
     scaled: number;
     answers: Record<number, AnswerRecord>;
     date: string;
-    duration: number; // duration in seconds
+    duration: number;
 }
 
 interface SessionContextType {
     activeSession: ActiveSession | null;
+    loading: boolean;
     history: HistoryEntry[];
     startSession: (quiz: QuizConfig) => void;
     updateSession: (data: Partial<ActiveSession>) => void;
     finishSession: () => void;
 }
-export const SessionContext = createContext<SessionContextType>({} as SessionContextType);
+
+export const SessionContext = createContext<SessionContextType>({
+    activeSession: null,
+    loading: true,
+    history: [],
+    startSession: () => {},
+    updateSession: () => {},
+    finishSession: () => {},
+});
 
 interface Props {
     children: ReactNode;
 }
+
 export function SessionProvider({ children }: Props) {
     const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const a = localStorage.getItem('activeSession');
-        const h = localStorage.getItem('quizHistory');
-        if (a) setActiveSession(JSON.parse(a));
-        if (h) setHistory(JSON.parse(h));
+        const storedSession = localStorage.getItem('activeSession');
+        const storedHistory = localStorage.getItem('quizHistory');
+
+        if (storedSession) {
+            setActiveSession(JSON.parse(storedSession));
+        }
+        if (storedHistory) {
+            setHistory(JSON.parse(storedHistory));
+        }
+
+        setLoading(false);
     }, []);
 
     useEffect(() => {
@@ -67,6 +88,7 @@ export function SessionProvider({ children }: Props) {
             flagged: {},
             start: now.toISOString(),
             expires: now.add(180, 'minute').toISOString(),
+            current: 0,
         });
     }, []);
 
@@ -91,13 +113,14 @@ export function SessionProvider({ children }: Props) {
             date: end.toISOString(),
             duration: durationSec,
         };
+
         setHistory((prev) => [entry, ...prev]);
         setActiveSession(null);
     }, [activeSession]);
 
     return (
         <SessionContext.Provider
-            value={{ activeSession, history, startSession, updateSession, finishSession }}
+            value={{ activeSession, loading, history, startSession, updateSession, finishSession }}
         >
             {children}
         </SessionContext.Provider>

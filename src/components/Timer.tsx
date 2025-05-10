@@ -46,7 +46,6 @@ export const Timer: FC = () => {
                 border: `1px solid ${theme.palette.divider}`,
                 color: theme.palette.primary.main,
                 borderRadius: 2,
-                // boxShadow: 3,
                 mb: 2,
             }}
         >
