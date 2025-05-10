@@ -1,71 +1,56 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom"
-import HomePage from "./pages/HomePage"
-import { ThemeProvider } from "@emotion/react"
-import { useState } from "react"
-import { darkTheme, lightTheme } from "./common/theme";
-import { AppBar, Box, CssBaseline, IconButton, Switch, Toolbar, Typography } from "@mui/material";
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import type { FC } from 'react';
+import { useContext, useState, useMemo } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Box, IconButton, CssBaseline } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
+import { lightTheme, darkTheme } from './theme';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { SessionContext } from './context/SessionContext';
+import { Sidebar } from './components/Sidebar';
+import HomePage from './pages/HomePage';
+import QuizPage from './pages/QuizPage';
+import HistoryPage from './pages/HistoryPage';
+import HistoryDetail from './pages/HistoryDetail';
 
-function App() {
-  const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem("theme") !== "light");
-  const handleThemeChange = () => {
-    setIsDarkMode((v) => {
-      localStorage.setItem("theme", !v ? "dark" : "light");
-      return !v;
-    }); 
-  };
+const App: FC = () => {
+    const { activeSession } = useContext(SessionContext);
+    const [mode, setMode] = useState<'light' | 'dark'>(
+        (localStorage.getItem('mode') as 'light' | 'dark') || 'light',
+    );
+    const theme = useMemo(() => (mode === 'light' ? lightTheme : darkTheme), [mode]);
+    const toggle = () => {
+        const next = mode === 'light' ? 'dark' : 'light';
+        setMode(next);
+        localStorage.setItem('mode', next);
+    };
 
-  return (
-    <>
-      <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
-        <CssBaseline />
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Box display="flex" height="100vh">
+                <Sidebar />
+                <Box flexGrow={1} display="flex" flexDirection="column">
+                    <Box display="flex" justifyContent="flex-end" p={1}>
+                        <IconButton onClick={toggle}>
+                            {mode === 'light' ? <Brightness4Icon /> : <Brightness7Icon />}
+                        </IconButton>
+                    </Box>
+                    <Box flexGrow={1} p={2} overflow="auto">
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route
+                                path="/quiz/:suffix"
+                                element={activeSession ? <QuizPage /> : <Navigate to="/" />}
+                            />
+                            <Route path="/history" element={<HistoryPage />} />
+                            <Route path="/history/:id" element={<HistoryDetail />} />
+                        </Routes>
+                    </Box>
+                </Box>
+            </Box>
+        </ThemeProvider>
+    );
+};
 
-        <Box
-            sx={{
-                position: 'relative',
-                minHeight: '100vh',
-                bgcolor: 'transparent',
-                overflow: 'hidden',
-                display: 'flex',
-            }}
-        >
-          <Box
-            component="main"
-            sx={{
-                flexGrow: 1,
-                p: 0,
-                position: 'relative',
-                zIndex: 1,
-                backgroundColor: 'transparent',
-            }}
-          >
-            <AppBar position="static" elevation={0} style={{ borderLeft: 'none' }}>
-              <Toolbar>
-                  <Typography variant="h5" sx={{ flexGrow: 1 }}>
-                      Shortener Dashboard
-                  </Typography>
-                  <IconButton onClick={handleThemeChange} color="inherit">
-                      {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                  </IconButton>
-                  <Switch
-                      checked={isDarkMode}
-                      onChange={handleThemeChange}
-                      color="secondary"
-                  />
-              </Toolbar>
-            </AppBar>
-          
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-              </Routes>
-            </BrowserRouter>
-          </Box>
-        </Box>
-      </ThemeProvider>
-    </>
-  )
-}
-
-export default App
+export default App;
